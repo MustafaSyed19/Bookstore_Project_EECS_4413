@@ -1,4 +1,4 @@
-const API_BASE = '/api';
+const API_BASE = 'http://localhost:3000/api';
 
 function authHeaders(token) {
   const h = { 'Content-Type': 'application/json' };
@@ -54,6 +54,14 @@ export const cartApi = {
 export const orderApi = {
   create: (orderData, token) =>
     api('/orders', { method: 'POST', body: JSON.stringify(orderData) }, token),
+  myOrders: (token) => {
+    console.log('token being sent:', token); // ← add this
+    return api('/orders/my-orders', { method: 'GET' }, token);
+  },
+  // myOrders: (token) =>
+  //   api('/orders/my-orders', { method: 'GET'}, token),
+  getById: (id, token) =>
+    api(`/orders/${id}`, { method: 'GET' }, token),
 };
 
 // ── Users ──

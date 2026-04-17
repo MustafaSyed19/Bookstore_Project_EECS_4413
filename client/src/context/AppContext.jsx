@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { cartApi, productApi } from '../api/api';
+import { cartApi, productApi, orderApi } from '../api/api';
 
 const AppContext = createContext(null);
 export function useApp() { return useContext(AppContext); }
@@ -13,6 +13,7 @@ export function AppProvider({ children }) {
   const [token, setToken] = useState(() => {
     try { return sessionStorage.getItem('bk_token'); } catch { return null; }
   });
+
   const [user, setUser] = useState(() => {
     try { return JSON.parse(sessionStorage.getItem('bk_user')); } catch { return null; }
   });
@@ -25,66 +26,82 @@ export function AppProvider({ children }) {
   const [cartCount, setCartCount] = useState(0);
   const [toastMsg, setToastMsg] = useState(null);
 
-  // Orders — localStorage for durability across sessions
-  const [orderHistory, setOrderHistory] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('bk_orders')) || []; } catch { return []; }
-  });
+  // Orders now come from backend
+  const [orderHistory, setOrderHistory] = useState([]);
 
-  // Inventory change log — localStorage for durability
+  // Still local for now since no backend endpoints yet
   const [inventoryLog, setInventoryLog] = useState(() => {
     try { return JSON.parse(localStorage.getItem('bk_inv_log')) || []; } catch { return []; }
   });
 
-  // Credit card — localStorage per user key
   const [savedCard, setSavedCard] = useState(() => {
     try { return JSON.parse(localStorage.getItem('bk_card')) || null; } catch { return null; }
   });
 
-  const toast = useCallback((msg, type = 'success') => setToastMsg({ msg, type }), []);
+  const toast = useCallback((msg, type = 'success') => {
+    setToastMsg({ msg, type });
+  }, []);
+
   const clearToast = useCallback(() => setToastMsg(null), []);
 
   // ── Guest cart ──
-  const saveGuestCart = (items) => {
+  const saveGuestCart = useCallback((items) => {
     setGuestCart(items);
     try { sessionStorage.setItem('bk_guest_cart', JSON.stringify(items)); } catch {}
-  };
+  }, []);
 
   const addToGuestCart = useCallback((product, qty = 1) => {
     setGuestCart(prev => {
       const existing = prev.find(i => i.bookId === product.id);
       let updated;
+
       if (existing) {
         const newQty = existing.quantity + qty;
         if (newQty > product.quantity) {
           toast(`Only ${product.quantity} in stock`, 'error');
           return prev;
         }
-        updated = prev.map(i => i.bookId === product.id ? { ...i, quantity: newQty } : i);
+        updated = prev.map(i =>
+          i.bookId === product.id ? { ...i, quantity: newQty } : i
+        );
       } else {
         if (qty > product.quantity) {
           toast(`Only ${product.quantity} in stock`, 'error');
           return prev;
         }
-        updated = [...prev, {
-          bookId: product.id, quantity: qty,
-          title: product.title, price: product.price,
-          imageUrl: product.imageUrl, inventory: product.quantity,
-        }];
+        updated = [
+          ...prev,
+          {
+            bookId: product.id,
+            quantity: qty,
+            title: product.title,
+            price: product.price,
+            imageUrl: product.imageUrl,
+            inventory: product.quantity,
+          }
+        ];
       }
+
       try { sessionStorage.setItem('bk_guest_cart', JSON.stringify(updated)); } catch {}
       return updated;
     });
+
     toast('Added to cart!', 'success');
   }, [toast]);
 
   const updateGuestCartQty = useCallback((bookId, quantity) => {
     setGuestCart(prev => {
       const item = prev.find(i => i.bookId === bookId);
+
       if (item && quantity > item.inventory) {
         toast(`Only ${item.inventory} in stock`, 'error');
         return prev;
       }
-      const updated = prev.map(i => i.bookId === bookId ? { ...i, quantity } : i);
+
+      const updated = prev.map(i =>
+        i.bookId === bookId ? { ...i, quantity } : i
+      );
+
       try { sessionStorage.setItem('bk_guest_cart', JSON.stringify(updated)); } catch {}
       return updated;
     });
@@ -96,69 +113,144 @@ export function AppProvider({ children }) {
       try { sessionStorage.setItem('bk_guest_cart', JSON.stringify(updated)); } catch {}
       return updated;
     });
+
     toast('Item removed', 'success');
   }, [toast]);
 
   const clearGuestCart = useCallback(() => {
     saveGuestCart([]);
     toast('Cart cleared', 'success');
-  }, [toast]);
+  }, [saveGuestCart, toast]);
 
   const getGuestCartTotal = useCallback(() => {
     return guestCart.reduce((sum, i) => sum + Number(i.price) * i.quantity, 0);
   }, [guestCart]);
 
   // ── Logged-in add-to-cart with stock check ──
-  const addToServerCart = useCallback(async (bookId, qty, tkn) => {
+  const addToServerCart = useCallback(async (bookId, qty, tkn = token) => {
     try {
       const product = await productApi.getById(bookId);
+
       if (product.quantity < qty) {
         toast(`Only ${product.quantity} in stock for "${product.title}"`, 'error');
         return false;
       }
+
       await cartApi.add(bookId, qty, tkn);
+      await refreshCart();
       toast('Added to cart!', 'success');
       return true;
-    } catch (e) { toast(e.message, 'error'); return false; }
-  }, [toast]);
+    } catch (e) {
+      toast(e.message, 'error');
+      return false;
+    }
+  }, [token, toast]);
 
   // ── Logged-in cart update with stock check ──
-  const updateServerCartQty = useCallback(async (bookId, newQty, tkn) => {
+  const updateServerCartQty = useCallback(async (bookId, newQty, tkn = token) => {
     try {
       const product = await productApi.getById(bookId);
+
       if (product.quantity < newQty) {
         toast(`Only ${product.quantity} in stock for "${product.title}"`, 'error');
         return false;
       }
+
       await cartApi.update(bookId, newQty, tkn);
+      await refreshCart();
       return true;
-    } catch (e) { toast(e.message, 'error'); return false; }
-  }, [toast]);
+    } catch (e) {
+      toast(e.message, 'error');
+      return false;
+    }
+  }, [token, toast]);
+
+  // ── Orders ──
+  const refreshOrders = useCallback(async (tkn = token) => {
+    if (!tkn) {
+      setOrderHistory([]);
+      return;
+    }
+
+    try {
+      const orders = await orderApi.myOrders(tkn);
+      const normalized = (Array.isArray(orders) ? orders : []).map(o => ({
+        ...o,
+        date: o.createdAt,
+        total: o.totalAmount,
+      }));
+      setOrderHistory(normalized);
+    } catch (e) {
+      toast(e.message, 'error');
+      setOrderHistory([]);
+    }
+  }, [token, toast]);
+
+  const addOrder = useCallback(async (orderData) => {
+    if (!token) {
+      toast('You must be logged in to place an order', 'error');
+      return null;
+    }
+
+    try {
+      const createdOrder = await orderApi.create(orderData, token);
+      await refreshOrders();
+      await refreshCart();
+      toast('Order placed successfully', 'success');
+      return createdOrder;
+    } catch (e) {
+      toast(e.message, 'error');
+      return null;
+    }
+  }, [token, refreshOrders, toast]);
+
+  const getOrderById = useCallback(async (id) => {
+    if (!token) {
+      throw new Error('You must be logged in');
+    }
+    return await orderApi.getById(id, token);
+  }, [token]);
 
   // ── Auth ──
   const login = useCallback(async (newToken, newUser) => {
     setToken(newToken);
     setUser(newUser);
+
     try {
       sessionStorage.setItem('bk_token', newToken);
       sessionStorage.setItem('bk_user', JSON.stringify(newUser));
     } catch {}
-    // Sync guest cart to server
+
     const gc = JSON.parse(sessionStorage.getItem('bk_guest_cart') || '[]');
     if (gc.length > 0) {
       for (const item of gc) {
-        try { await cartApi.add(item.bookId, item.quantity, newToken); } catch {}
+        try {
+          await cartApi.add(item.bookId, item.quantity, newToken);
+        } catch {}
       }
       saveGuestCart([]);
     }
-  }, []);
+
+    try {
+      const data = await cartApi.get(newToken);
+      setCartCount(data.items?.reduce((s, i) => s + i.quantity, 0) || 0);
+    } catch {
+      setCartCount(0);
+    }
+      await refreshOrders(newToken);
+  }, [saveGuestCart,refreshOrders]);
 
   const logout = useCallback(() => {
-    setToken(null); setUser(null); setCartCount(0);
+    setToken(null);
+    setUser(null);
+    setCartCount(0);
+    setOrderHistory([]);
+
     try {
       sessionStorage.removeItem('bk_token');
       sessionStorage.removeItem('bk_user');
     } catch {}
+
     navigate('/');
   }, [navigate]);
 
@@ -168,13 +260,22 @@ export function AppProvider({ children }) {
       setCartCount(guestCart.reduce((s, i) => s + i.quantity, 0));
       return;
     }
+
     try {
       const data = await cartApi.get(token);
       setCartCount(data.items?.reduce((s, i) => s + i.quantity, 0) || 0);
-    } catch { setCartCount(0); }
+    } catch {
+      setCartCount(0);
+    }
   }, [token, guestCart]);
 
-  useEffect(() => { refreshCart(); }, [refreshCart]);
+  useEffect(() => {
+    refreshCart();
+  }, [refreshCart]);
+
+  useEffect(() => {
+    refreshOrders();
+  }, [refreshOrders]);
 
   // ── Payment: deny every 3rd ──
   const simulatePayment = useCallback(() => {
@@ -184,16 +285,7 @@ export function AppProvider({ children }) {
       : { approved: true };
   }, []);
 
-  // ── Orders (localStorage) ──
-  const addOrder = useCallback((order) => {
-    setOrderHistory(prev => {
-      const updated = [order, ...prev];
-      try { localStorage.setItem('bk_orders', JSON.stringify(updated)); } catch {}
-      return updated;
-    });
-  }, []);
-
-  // ── Inventory log (localStorage) ──
+  // ── Inventory log (still local) ──
   const addInventoryLogEntry = useCallback((entry) => {
     setInventoryLog(prev => {
       const updated = [{ ...entry, date: new Date().toISOString() }, ...prev];
@@ -202,20 +294,46 @@ export function AppProvider({ children }) {
     });
   }, []);
 
-  // ── Card (localStorage) ──
+  // ── Card (still local) ──
   const saveCardInfo = useCallback((cardInfo) => {
     setSavedCard(cardInfo);
     try { localStorage.setItem('bk_card', JSON.stringify(cardInfo)); } catch {}
   }, []);
 
   const value = {
-    token, user, cartCount, toastMsg, orderHistory, savedCard,
-    guestCart, getGuestCartTotal, inventoryLog,
-    login, logout, toast, clearToast, refreshCart,
-    simulatePayment, addOrder, saveCardInfo, addInventoryLogEntry,
-    addToGuestCart, updateGuestCartQty, removeFromGuestCart, clearGuestCart,
-    addToServerCart, updateServerCartQty,
+    token,
+    user,
+    cartCount,
+    toastMsg,
+    orderHistory,
+    savedCard,
+    guestCart,
+    getGuestCartTotal,
+    inventoryLog,
+
+    login,
+    logout,
+    toast,
+    clearToast,
+    refreshCart,
+    refreshOrders,
+    simulatePayment,
+    addOrder,
+    getOrderById,
+    saveCardInfo,
+    addInventoryLogEntry,
+
+    addToGuestCart,
+    updateGuestCartQty,
+    removeFromGuestCart,
+    clearGuestCart,
+    addToServerCart,
+    updateServerCartQty,
   };
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return (
+    <AppContext.Provider value={value}>
+      {children}
+    </AppContext.Provider>
+  );
 }

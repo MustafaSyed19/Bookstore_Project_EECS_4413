@@ -180,7 +180,7 @@ export default function ProfilePage() {
               {order.items.map((item,i)=>(
                 <div key={i} style={{ display:'flex', justifyContent:'space-between', padding:'6px 0', fontSize:14 }}>
                   <span>{item.title} <span style={{ color:'var(--muted)' }}>×{item.quantity}</span></span>
-                  <span style={{ fontWeight:600 }}>${(Number(item.price)*item.quantity).toFixed(2)}</span>
+                  <span style={{ fontWeight:600 }}>${(Number(item.priceAtPurchase)*item.quantity).toFixed(2)}</span>
                 </div>
               ))}
               <div style={{ display:'flex', justifyContent:'space-between', marginTop:12, paddingTop:12, borderTop:'1px solid var(--sand)', fontWeight:700 }}>
