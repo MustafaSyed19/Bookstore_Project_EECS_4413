@@ -3,7 +3,7 @@ const db = require('./db');
 const UserDAO = {
   async createUser(user) {
     const sql = `
-      INSERT INTO User (email, passwordHash, firstName, lastName, role)
+      INSERT INTO user (email, passwordHash, firstName, lastName, role)
       VALUES (?, ?, ?, ?, ?)
     `;
 
@@ -19,26 +19,26 @@ const UserDAO = {
   },
 
   async getUserById(id) {
-    const sql = `SELECT * FROM User WHERE id = ?`;
+    const sql = `SELECT * FROM user WHERE id = ?`;
     const [rows] = await db.execute(sql, [id]);
     return rows[0] || null;
   },
 
   async getUserByEmail(email) {
-    const sql = `SELECT * FROM User WHERE email = ?`;
+    const sql = `SELECT * FROM user WHERE email = ?`;
     const [rows] = await db.execute(sql, [email]);
     return rows[0] || null;
   },
 
   async getAllUsers() {
-    const sql = `SELECT * FROM User`;
+    const sql = `SELECT * FROM user`;
     const [rows] = await db.execute(sql);
     return rows;
   },
 
   async updateUser(id, user) {
     const sql = `
-      UPDATE User
+      UPDATE user
       SET email = ?, passwordHash = ?, firstName = ?, lastName = ?, role = ?
       WHERE id = ?
     `;
@@ -56,7 +56,7 @@ const UserDAO = {
   },
 
   async deleteUser(id) {
-    const sql = `DELETE FROM User WHERE id = ?`;
+    const sql = `DELETE FROM user WHERE id = ?`;
     const [result] = await db.execute(sql, [id]);
     return result.affectedRows > 0;
   }

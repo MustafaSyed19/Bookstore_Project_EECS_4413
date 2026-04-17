@@ -3,7 +3,7 @@ const db = require('../db');
 const OrderDAO = {
   async createOrder({ userId, totalAmount, status = 'pending', shippingAddressId = null }) {
     const sql = `
-      INSERT INTO Orders (userId, totalAmount, status, shippingAddressId)
+      INSERT INTO orders (userId, totalAmount, status, shippingAddressId)
       VALUES (?, ?, ?, ?)
     `;
 
@@ -18,7 +18,7 @@ const OrderDAO = {
   },
 
   async getOrderById(id) {
-    const sql = `SELECT * FROM Orders WHERE id = ?`;
+    const sql = `SELECT * FROM orders WHERE id = ?`;
     const [rows] = await db.execute(sql, [id]);
     return rows[0] || null;
   },
@@ -26,7 +26,7 @@ const OrderDAO = {
   async getOrdersByUserId(userId) {
     const sql = `
       SELECT *
-      FROM Orders
+      FROM orders
       WHERE userId = ?
       ORDER BY createdAt DESC
     `;
@@ -35,14 +35,14 @@ const OrderDAO = {
   },
 
   async getAllOrders() {
-    const sql = `SELECT * FROM Orders ORDER BY createdAt DESC`;
+    const sql = `SELECT * FROM orders ORDER BY createdAt DESC`;
     const [rows] = await db.execute(sql);
     return rows;
   },
 
   async updateOrderStatus(id, status) {
     const sql = `
-      UPDATE Orders
+      UPDATE orders
       SET status = ?
       WHERE id = ?
     `;
@@ -53,7 +53,7 @@ const OrderDAO = {
   async getSalesByDateRange(startDate, endDate) {
     const sql = `
       SELECT *
-      FROM Orders
+      FROM orders
       WHERE createdAt BETWEEN ? AND ?
       ORDER BY createdAt DESC
     `;
@@ -62,7 +62,7 @@ const OrderDAO = {
   },
 
   async deleteOrder(id) {
-    const sql = `DELETE FROM Orders WHERE id = ?`;
+    const sql = `DELETE FROM orders WHERE id = ?`;
     const [result] = await db.execute(sql, [id]);
     return result.affectedRows > 0;
   }

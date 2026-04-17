@@ -3,7 +3,7 @@ const db = require('./db');
 const ProductDAO = {
   async createProduct(product) {
     const sql = `
-      INSERT INTO BOOK
+      INSERT INTO book
       (isbn, price, title, language, pages, description, category, publisher, brand, quantity, imageUrl)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
@@ -26,20 +26,20 @@ const ProductDAO = {
   },
 
   async getProductById(id) {
-    const sql = `SELECT * FROM BOOK WHERE id = ?`;
+    const sql = `SELECT * FROM book WHERE id = ?`;
     const [rows] = await db.execute(sql, [id]);
     return rows[0] || null;
   },
 
   async getAllProducts() {
-    const sql = `SELECT * FROM BOOK`;
+    const sql = `SELECT * FROM book`;
     const [rows] = await db.execute(sql);
     return rows;
   },
 
   async searchProducts(keyword) {
     const sql = `
-      SELECT * FROM BOOK
+      SELECT * FROM book
       WHERE title LIKE ?
          OR description LIKE ?
          OR category LIKE ?
@@ -53,7 +53,7 @@ const ProductDAO = {
   },
 
   async filterProducts({ category, publisher, brand }) {
-    let sql = `SELECT * FROM BOOK WHERE 1=1`;
+    let sql = `SELECT * FROM book WHERE 1=1`;
     const params = [];
 
     if (category) {
@@ -77,21 +77,21 @@ const ProductDAO = {
 
   async sortProductsByPrice(order = 'ASC') {
     const safeOrder = order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
-    const sql = `SELECT * FROM BOOK ORDER BY price ${safeOrder}`;
+    const sql = `SELECT * FROM book ORDER BY price ${safeOrder}`;
     const [rows] = await db.execute(sql);
     return rows;
   },
 
   async sortProductsByTitle(order = 'ASC') {
     const safeOrder = order.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
-    const sql = `SELECT * FROM BOOK ORDER BY title ${safeOrder}`;
+    const sql = `SELECT * FROM book ORDER BY title ${safeOrder}`;
     const [rows] = await db.execute(sql);
     return rows;
   },
 
   async updateProduct(id, product) {
     const sql = `
-      UPDATE BOOK
+      UPDATE book
       SET isbn = ?, price = ?, title = ?, language = ?, pages = ?, description = ?,
           category = ?, publisher = ?, brand = ?, quantity = ?, imageUrl = ?
       WHERE id = ?
@@ -116,14 +116,14 @@ const ProductDAO = {
   },
 
   async updateInventory(id, quantity) {
-    const sql = `UPDATE BOOK SET quantity = ? WHERE id = ?`;
+    const sql = `UPDATE book SET quantity = ? WHERE id = ?`;
     const [result] = await db.execute(sql, [quantity, id]);
     return result.affectedRows > 0;
   },
 
   async decreaseInventory(id, amount) {
     const sql = `
-      UPDATE BOOK
+      UPDATE book
       SET quantity = quantity - ?
       WHERE id = ? AND quantity >= ?
     `;
@@ -132,7 +132,7 @@ const ProductDAO = {
   },
 
   async deleteProduct(id) {
-    const sql = `DELETE FROM BOOK WHERE id = ?`;
+    const sql = `DELETE FROM book WHERE id = ?`;
     const [result] = await db.execute(sql, [id]);
     return result.affectedRows > 0;
   }

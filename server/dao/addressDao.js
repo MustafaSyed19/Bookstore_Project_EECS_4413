@@ -3,7 +3,7 @@ const db = require('./db');
 const AddressDAO = {
   async createAddress(address) {
     const sql = `
-      INSERT INTO Address (userId, street, city, province, country, zip, phone, isDefault)
+      INSERT INTO address (userId, street, city, province, country, zip, phone, isDefault)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
@@ -22,20 +22,20 @@ const AddressDAO = {
   },
 
   async getAddressById(id) {
-    const sql = `SELECT * FROM Address WHERE id = ?`;
+    const sql = `SELECT * FROM address WHERE id = ?`;
     const [rows] = await db.execute(sql, [id]);
     return rows[0] || null;
   },
 
   async getAddressesByUserId(userId) {
-    const sql = `SELECT * FROM Address WHERE userId = ?`;
+    const sql = `SELECT * FROM address WHERE userId = ?`;
     const [rows] = await db.execute(sql, [userId]);
     return rows;
   },
 
   async getDefaultAddressByUserId(userId) {
     const sql = `
-      SELECT * FROM Address
+      SELECT * FROM address
       WHERE userId = ? AND isDefault = TRUE
       LIMIT 1
     `;
@@ -45,7 +45,7 @@ const AddressDAO = {
 
   async updateAddress(id, address) {
     const sql = `
-      UPDATE Address
+      UPDATE address
       SET street = ?, city = ?, province = ?, country = ?, zip = ?, phone = ?, isDefault = ?
       WHERE id = ?
     `;
@@ -65,7 +65,7 @@ const AddressDAO = {
   },
 
   async deleteAddress(id) {
-    const sql = `DELETE FROM Address WHERE id = ?`;
+    const sql = `DELETE FROM address WHERE id = ?`;
     const [result] = await db.execute(sql, [id]);
     return result.affectedRows > 0;
   }

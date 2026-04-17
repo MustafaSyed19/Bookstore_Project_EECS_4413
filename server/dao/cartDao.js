@@ -12,8 +12,8 @@ const CartDAO = {
         b.price,
         b.imageUrl,
         b.quantity AS inventory
-      FROM CartItem c
-      JOIN BOOK b ON c.bookId = b.id
+      FROM cartitem c
+      JOIN book b ON c.bookId = b.id
       WHERE c.userId = ?
     `;
 
@@ -23,7 +23,7 @@ const CartDAO = {
 
   async getCartItemByUserAndBook(userId, bookId) {
     const sql = `
-      SELECT * FROM CartItem
+      SELECT * FROM cartitem
       WHERE userId = ? AND bookId = ?
     `;
     const [rows] = await db.execute(sql, [userId, bookId]);
@@ -35,7 +35,7 @@ const CartDAO = {
 
     if (existing) {
       const sql = `
-        UPDATE CartItem
+        UPDATE cartitem
         SET quantity = quantity + ?
         WHERE userId = ? AND bookId = ?
       `;
@@ -44,7 +44,7 @@ const CartDAO = {
     }
 
     const sql = `
-      INSERT INTO CartItem (userId, bookId, quantity)
+      INSERT INTO cartitem (userId, bookId, quantity)
       VALUES (?, ?, ?)
     `;
     const [result] = await db.execute(sql, [userId, bookId, quantity]);
@@ -53,7 +53,7 @@ const CartDAO = {
 
   async updateCartItemQuantity(userId, bookId, quantity) {
     const sql = `
-      UPDATE CartItem
+      UPDATE cartitem
       SET quantity = ?
       WHERE userId = ? AND bookId = ?
     `;
@@ -63,7 +63,7 @@ const CartDAO = {
 
   async removeFromCart(userId, bookId) {
     const sql = `
-      DELETE FROM CartItem
+      DELETE FROM cartitem
       WHERE userId = ? AND bookId = ?
     `;
     const [result] = await db.execute(sql, [userId, bookId]);
@@ -71,7 +71,7 @@ const CartDAO = {
   },
 
   async clearCart(userId) {
-    const sql = `DELETE FROM CartItem WHERE userId = ?`;
+    const sql = `DELETE FROM cartitem WHERE userId = ?`;
     const [result] = await db.execute(sql, [userId]);
     return result.affectedRows >= 0;
   },
@@ -79,8 +79,8 @@ const CartDAO = {
   async getCartTotal(userId) {
     const sql = `
       SELECT COALESCE(SUM(c.quantity * b.price), 0) AS total
-      FROM CartItem c
-      JOIN BOOK b ON c.bookId = b.id
+      FROM cartitem c
+      JOIN book b ON c.bookId = b.id
       WHERE c.userId = ?
     `;
     const [rows] = await db.execute(sql, [userId]);
