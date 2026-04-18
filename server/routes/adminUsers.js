@@ -21,6 +21,73 @@ router.get('/', verifyToken, requireAdmin, async (req, res) => {
 });
 
 // PUT /api/admin/users/:id
+router.get('/all', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const orders = await OrderDAO.getAllOrders();
+
+    const enriched = await Promise.all(
+      orders.map(async (order) => {
+        const [items, user, address] = await Promise.all([
+          OrderItemDAO.getOrderItemsByOrderId(order.id),
+          UserDAO.getUserById(order.userId),
+          order.shippingAddressId
+            ? AddressDAO.getAddressById(order.shippingAddressId)
+            : null,
+        ]);
+
+        return {
+          ...order,
+          items,
+          shipping: address || null,
+          userName: user ? `${user.firstName} ${user.lastName}`.trim() : '—',
+        };
+      })
+    );
+
+    res.json(enriched);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to fetch all orders' });
+  }
+});
+
+module.exports = router;
+router.post('/book', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const { isbn, price, title, language, pages, description, category, publisher, brand, quantity, imageUrl } = req.body;
+    if (!price || !title) return res.status(400).json({ message: 'title and price are required.' });
+
+    const insertId = await ProductDAO.createProduct({
+      isbn, price, title, language, pages, description, category, publisher, brand, quantity, imageUrl
+    });
+
+    res.status(201).json({ message: 'Book created!', id: insertId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to create book' });
+  }
+});
+
+// PUT /api/admin/users/book/:id
+router.put('/book/:id', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, category, brand, price, quantity } = req.body;
+    
+    const updated = await ProductDAO.updateProduct(id, { title, category, brand, price, quantity });
+    if (!updated) return res.status(404).json({ message: 'Book not found' });
+
+    res.json({ message: 'Book updated!' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to update book' });
+  }
+});
+
+
+
+
+// GET /api/admin/users/all — admin only
 router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
   try {
     const userId = parseInt(req.params.id, 10);
@@ -88,54 +155,4 @@ router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
     return res.status(500).json({ message: 'Server error while updating user.' });
   }
 });
-// PUT /api/admin/users/book/:id
-router.put('/book/:id', verifyToken, requireAdmin, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { title, category, brand, price, quantity } = req.body;
-    
-    const updated = await ProductDAO.updateProduct(id, { title, category, brand, price, quantity });
-    if (!updated) return res.status(404).json({ message: 'Book not found' });
-
-    res.json({ message: 'Book updated!' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Failed to update book' });
-  }
-});
-
-
-
-
-// GET /api/admin/users/all — admin only
-router.get('/all', verifyToken, requireAdmin, async (req, res) => {
-  try {
-    const orders = await OrderDAO.getAllOrders();
-
-    const enriched = await Promise.all(
-      orders.map(async (order) => {
-        const [items, user, address] = await Promise.all([
-          OrderItemDAO.getOrderItemsByOrderId(order.id),
-          UserDAO.getUserById(order.userId),
-          order.shippingAddressId
-            ? AddressDAO.getAddressById(order.shippingAddressId)
-            : null,
-        ]);
-
-        return {
-          ...order,
-          items,
-          shipping: address || null,
-          userName: user ? `${user.firstName} ${user.lastName}`.trim() : '—',
-        };
-      })
-    );
-
-    res.json(enriched);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Failed to fetch all orders' });
-  }
-});
-
-module.exports = router;
+// POST /api/admin/users/book — create a new book

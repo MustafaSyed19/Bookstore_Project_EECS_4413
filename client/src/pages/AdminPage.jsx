@@ -213,13 +213,37 @@ const saveEdit = async (id) => {
   } catch (e) { toast(e.message, 'error'); }
 };
 
-  const handleAdd = () => {
-    const np = { id:Date.now(), ...addForm, price:parseFloat(addForm.price)||0, pages:parseInt(addForm.pages)||0, quantity:parseInt(addForm.quantity)||0 };
-    setProducts(prev => [np,...prev]);
-    addLog({ type:'add', productId:np.id, productTitle:np.title, changes:[`New product added with qty ${np.quantity}, price $${np.price.toFixed(2)}`] });
-    setShowAdd(false);
-    setAddForm({title:'',isbn:'',price:'',category:'',publisher:'',brand:'',language:'English',pages:'',quantity:'',description:'',imageUrl:''});
-    toast('Product added!','success');
+  const handleAdd = async () => {
+    try {
+      const result = await adminApi.createBook({
+        isbn:        addForm.isbn        || null,
+        price:       parseFloat(addForm.price)  || 0,
+        title:       addForm.title,
+        language:    addForm.language    || 'English',
+        pages:       parseInt(addForm.pages)    || 0,
+        description: addForm.description || null,
+        category:    addForm.category    || null,
+        publisher:   addForm.publisher   || null,
+        brand:       addForm.brand       || null,
+        quantity:    parseInt(addForm.quantity) || 0,
+        imageUrl:    addForm.imageUrl    || null,
+      }, token);
+
+      const np = {
+        id:       result.id,
+        ...addForm,
+        price:    parseFloat(addForm.price)  || 0,
+        pages:    parseInt(addForm.pages)    || 0,
+        quantity: parseInt(addForm.quantity) || 0,
+      };
+      setProducts(prev => [np, ...prev]);
+      addLog({ type:'add', productId:result.id, productTitle:np.title, changes:[`New product added with qty ${np.quantity}, price $${np.price.toFixed(2)}`] });
+      setShowAdd(false);
+      setAddForm({title:'',isbn:'',price:'',category:'',publisher:'',brand:'',language:'English',pages:'',quantity:'',description:'',imageUrl:''});
+      toast('Product added!','success');
+    } catch (e) {
+      toast(e.message, 'error');
+    }
   };
 
   if (loading) return <div className="spinner"/>;
