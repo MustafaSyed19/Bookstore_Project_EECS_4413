@@ -108,7 +108,7 @@ router.put('/book/:id', verifyToken, requireAdmin, async (req, res) => {
 
 
 // GET /api/admin/users/all — admin only
-router.get('/all', /*verifyToken, requireAdmin,*/ async (req, res) => {
+router.get('/all', verifyToken, requireAdmin, async (req, res) => {
   try {
     const orders = await OrderDAO.getAllOrders();
 
