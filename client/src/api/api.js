@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = 'https://bookstore-project-eecs-4413-production.up.railway.app/api';
 
 function authHeaders(token) {
   const h = { 'Content-Type': 'application/json' };
@@ -79,4 +79,6 @@ export const adminApi = {
     api(`/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(body) }, token),
   updateBook: (id, body, token) =>
     api(`/admin/users/book/${id}`, { method: 'PUT', body: JSON.stringify(body) }, token),
+  createBook: (body, token) =>
+    api('/admin/users/book', { method: 'POST', body: JSON.stringify(body) }, token),
 };
