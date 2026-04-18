@@ -5,6 +5,7 @@ const UserDAO = require('../dao/userDao');
 const AddressDAO = require('../dao/addressDao');
 const OrderDAO = require('../dao/orderDao');
 const OrderItemDAO = require('../dao/orderItemDao');
+const ProductDAO = require('../dao/productDao');
 
 const router = express.Router();
 
@@ -87,6 +88,24 @@ router.put('/:id', verifyToken, requireAdmin, async (req, res) => {
     return res.status(500).json({ message: 'Server error while updating user.' });
   }
 });
+// PUT /api/admin/users/book/:id
+router.put('/book/:id', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, category, brand, price, quantity } = req.body;
+    
+    const updated = await ProductDAO.updateProduct(id, { title, category, brand, price, quantity });
+    if (!updated) return res.status(404).json({ message: 'Book not found' });
+
+    res.json({ message: 'Book updated!' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to update book' });
+  }
+});
+
+
+
 
 // GET /api/admin/users/all — admin only
 router.get('/all', /*verifyToken, requireAdmin,*/ async (req, res) => {

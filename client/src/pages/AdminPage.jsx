@@ -182,11 +182,20 @@ function InventoryTab({ token, toast, addLog }) {
     setEditId(p.id);
     setEditForm({ title:p.title||'', price:p.price||'', quantity:p.quantity||0, category:p.category||'', brand:p.brand||'', publisher:p.publisher||'' });
   };
+  
+const saveEdit = async (id) => {
+  const oldProduct = products.find(p => p.id === id);
+  const newQty = parseInt(editForm.quantity);
+  const newPrice = parseFloat(editForm.price);
 
-  const saveEdit = (id) => {
-    const oldProduct = products.find(p => p.id === id);
-    const newQty = parseInt(editForm.quantity);
-    const newPrice = parseFloat(editForm.price);
+  try {
+    await adminApi.updateBook(id, {
+      title: editForm.title,
+      category: editForm.category,
+      brand: editForm.brand,
+      price: newPrice,
+      quantity: newQty,
+    }, token);
 
     if (oldProduct) {
       const changes = [];
@@ -195,15 +204,14 @@ function InventoryTab({ token, toast, addLog }) {
       if (oldProduct.title !== editForm.title) changes.push(`Title: "${oldProduct.title}" → "${editForm.title}"`);
       if (oldProduct.category !== editForm.category) changes.push(`Category: "${oldProduct.category||'—'}" → "${editForm.category||'—'}"`);
       if (oldProduct.brand !== editForm.brand) changes.push(`Brand: "${oldProduct.brand||'—'}" → "${editForm.brand||'—'}"`);
-      if (changes.length > 0) {
-        addLog({ type:'update', productId:id, productTitle:editForm.title, changes });
-      }
+      if (changes.length > 0) addLog({ type:'update', productId:id, productTitle:editForm.title, changes });
     }
 
     setProducts(prev => prev.map(p => p.id===id ? {...p,...editForm,price:newPrice,quantity:newQty} : p));
-    toast('Product updated!','success');
+    toast('Product updated!', 'success');
     setEditId(null);
-  };
+  } catch (e) { toast(e.message, 'error'); }
+};
 
   const handleAdd = () => {
     const np = { id:Date.now(), ...addForm, price:parseFloat(addForm.price)||0, pages:parseInt(addForm.pages)||0, quantity:parseInt(addForm.quantity)||0 };

@@ -89,31 +89,24 @@ const ProductDAO = {
     return rows;
   },
 
-  async updateProduct(id, product) {
-    const sql = `
-      UPDATE book
-      SET isbn = ?, price = ?, title = ?, language = ?, pages = ?, description = ?,
-          category = ?, publisher = ?, brand = ?, quantity = ?, imageUrl = ?
-      WHERE id = ?
-    `;
+async updateProduct(id, product) {
+  const sql = `
+    UPDATE book
+    SET title = ?, category = ?, brand = ?, price = ?, quantity = ?
+    WHERE id = ?
+  `;
 
-    const [result] = await db.execute(sql, [
-      product.isbn || null,
-      product.price,
-      product.title,
-      product.language,
-      product.pages ?? 0,
-      product.description || null,
-      product.category || null,
-      product.publisher || null,
-      product.brand || null,
-      product.quantity ?? 0,
-      product.imageUrl || null,
-      id
-    ]);
+  const [result] = await db.execute(sql, [
+    product.title,
+    product.category || null,
+    product.brand || null,
+    product.price,
+    product.quantity ?? 0,
+    id
+  ]);
 
-    return result.affectedRows > 0;
-  },
+  return result.affectedRows > 0;
+},
 
   async updateInventory(id, quantity) {
     const sql = `UPDATE book SET quantity = ? WHERE id = ?`;

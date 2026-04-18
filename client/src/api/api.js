@@ -75,7 +75,8 @@ export const userApi = {
 export const adminApi = {
   getUsers: (token) => api('/admin/users', {}, token),
   getAllOrders: (token) => api('/admin/users/all', {}, token),
-
   updateUser: (id, body, token) =>
     api(`/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(body) }, token),
+  updateBook: (id, body, token) =>
+    api(`/admin/users/book/${id}`, { method: 'PUT', body: JSON.stringify(body) }, token),
 };
