@@ -17,6 +17,22 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/products/search
+router.get('/search', async (req, res) => {
+  const {keyword} = req.query; 
+  try {
+    const products = await ProductDAO.searchProducts(keyword);
+
+    return res.status(200).json(products);
+  } catch (error) {
+    console.error('Filter products error:', error);
+    return res.status(500).json({
+      message: 'Server error while fetching products.'
+    });
+  }
+});
+
+
 // GET /api/products/:id
 router.get('/:id', async (req, res) => {
   try {
@@ -45,20 +61,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// GET /api/products/search
-router.get('/search', async (req, res) => {
-  const {keyword} = req.query; 
-  try {
-    const products = await ProductDAO.searchProducts(keyword);
-
-    return res.status(200).json(products);
-  } catch (error) {
-    console.error('Filter products error:', error);
-    return res.status(500).json({
-      message: 'Server error while fetching products.'
-    });
-  }
-});
 
 
 

@@ -1,13 +1,13 @@
-const db = require('../db');
+const db = require('./db');
 
 const OrderItemDAO = {
-  async createOrderItem({ orderId, bookId, quantity, priceAtPurchase }) {
+  async createOrderItem({ orderId, bookId, quantity, priceAtPurchase },conn = db) {
     const sql = `
-      INSERT INTO orderItem (orderId, bookId, quantity, priceAtPurchase)
+      INSERT INTO orderitem (orderId, bookId, quantity, priceAtPurchase)
       VALUES (?, ?, ?, ?)
     `;
 
-    const [result] = await db.execute(sql, [
+    const [result] = await conn.execute(sql, [
       orderId,
       bookId,
       quantity,
@@ -19,7 +19,7 @@ const OrderItemDAO = {
 
   async createManyOrderItems(orderItems) {
     const sql = `
-      INSERT INTO orderItem (orderId, bookId, quantity, priceAtPurchase)
+      INSERT INTO orderitem (orderId, bookId, quantity, priceAtPurchase)
       VALUES ?
     `;
 
@@ -44,7 +44,7 @@ const OrderItemDAO = {
         oi.priceAtPurchase,
         b.title,
         b.imageUrl
-      FROM orderItem oi
+      FROM orderitem oi
       JOIN book b ON oi.bookId = b.id
       WHERE oi.orderId = ?
     `;
@@ -58,7 +58,7 @@ const OrderItemDAO = {
       SELECT
         oi.*,
         b.title
-      FROM orderItem oi
+      FROM orderitem oi
       JOIN book b ON oi.bookId = b.id
     `;
     const [rows] = await db.execute(sql);
@@ -66,7 +66,7 @@ const OrderItemDAO = {
   },
 
   async deleteOrderItemsByOrderId(orderId) {
-    const sql = `DELETE FROM orderItem WHERE orderId = ?`;
+    const sql = `DELETE FROM orderitem WHERE orderId = ?`;
     const [result] = await db.execute(sql, [orderId]);
     return result.affectedRows >= 0;
   }

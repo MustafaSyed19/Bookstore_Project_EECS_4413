@@ -1,13 +1,13 @@
-const db = require('../db');
+const db = require('./db');
 
 const OrderDAO = {
-  async createOrder({ userId, totalAmount, status = 'pending', shippingAddressId = null }) {
+  async createOrder({ userId, totalAmount, status = 'pending', shippingAddressId = null }, conn = db) {
     const sql = `
       INSERT INTO orders (userId, totalAmount, status, shippingAddressId)
       VALUES (?, ?, ?, ?)
     `;
 
-    const [result] = await db.execute(sql, [
+    const [result] = await conn.execute(sql, [
       userId,
       totalAmount,
       status,

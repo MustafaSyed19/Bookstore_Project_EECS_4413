@@ -92,7 +92,7 @@ INSERT INTO User (email, passwordHash, firstName, lastName, role) VALUES
 
 -- Sample customer (password: customer123)
 INSERT INTO User (email, passwordHash, firstName, lastName, role) VALUES
-('jane@example.com', '$2b$10$LzWoWneyof2U5YfYWuUsQ.mWaOCfG/AI9.m9TbjzELaCEYbk0lY9.', 'Jane', 'Smith', 'customer');
+('jane@example.com', '$2b$10$LzWoWneyof2U5YfYWuUsQ.mWaOCfG/AI9.m9TbjzELaCEYbk0lY9.', 'Jane', 'Smith', 'admin');
 
 -- Sample address for Jane
 INSERT INTO Address (userId, street, city, province, country, zip, phone, isDefault) VALUES

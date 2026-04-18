@@ -121,13 +121,13 @@ const ProductDAO = {
     return result.affectedRows > 0;
   },
 
-  async decreaseInventory(id, amount) {
+  async decreaseInventory(id, amount, conn = db) {
     const sql = `
       UPDATE book
       SET quantity = quantity - ?
       WHERE id = ? AND quantity >= ?
     `;
-    const [result] = await db.execute(sql, [amount, id, amount]);
+    const [result] = await conn.execute(sql, [amount, id, amount]);
     return result.affectedRows > 0;
   },
 

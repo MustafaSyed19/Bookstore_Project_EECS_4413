@@ -6,16 +6,9 @@ const cartRoutes = require('./routes/cart')
 const productRoutes = require('./routes/products')
 const adminUserRoutes = require('./routes/adminUsers');
 const userRoutes = require('./routes/users')
+const orderRoutes = require('./routes/order')
 const mysql = require('mysql2/promise');
 require('dotenv').config();
-
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME
-});
 
 const app = express()
 
@@ -26,6 +19,7 @@ app.use('/api/products',productRoutes)
 app.use('/api/cart',cartRoutes)
 app.use('/api/admin/users',adminUserRoutes)
 app.use('/api/users',userRoutes)
+app.use('/api/orders',orderRoutes)
 
 app.get('/', (req, res) => {
   res.json({ message: 'Bookstore API is running 🚀' });
