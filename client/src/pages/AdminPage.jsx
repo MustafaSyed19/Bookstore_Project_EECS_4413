@@ -4,8 +4,23 @@ import { adminApi, productApi, userApi } from '../api/api';
 import { Icon, ICONS } from '../components/Icons';
 
 export default function AdminPage() {
-  const { token, toast, orderHistory, inventoryLog, addInventoryLogEntry } = useApp();
+  const { token, toast, inventoryLog, addInventoryLogEntry } = useApp();
   const [activeTab, setActiveTab] = useState('users');
+  const [allOrders, setAllOrders] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const orders = await adminApi.getAllOrders(token);
+        const normalized = orders.map(o => ({
+          ...o,
+          date: o.createdAt,
+          total: o.totalAmount,
+        }));
+        setAllOrders(normalized);
+      } catch (e) { toast(e.message, 'error'); }
+    })();
+  }, [token]);
 
   return (
     <div className="container" style={{ paddingTop:40, paddingBottom:60 }}>
@@ -16,17 +31,16 @@ export default function AdminPage() {
         <button className={`profile-tab${activeTab==='inv-history'?' active':''}`} onClick={()=>setActiveTab('inv-history')}>Inventory History</button>
         <button className={`profile-tab${activeTab==='sales'?' active':''}`} onClick={()=>setActiveTab('sales')}>Sales</button>
       </div>
-      {activeTab === 'users' && <UsersTab token={token} toast={toast} />}
+      {activeTab === 'users' && <UsersTab token={token} toast={toast} allOrders={allOrders} />}
       {activeTab === 'inventory' && <InventoryTab token={token} toast={toast} addLog={addInventoryLogEntry} />}
       {activeTab === 'inv-history' && <InventoryHistoryTab log={inventoryLog} />}
-      {activeTab === 'sales' && <SalesTab orderHistory={orderHistory} />}
+      {activeTab === 'sales' && <SalesTab orderHistory={allOrders} />}
     </div>
   );
 }
 
 /* ═══════ USERS TAB — edit name, email, role, address, card ═══════ */
-function UsersTab({ token, toast }) {
-  const { orderHistory } = useApp();
+function UsersTab({ token, toast, allOrders }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editId, setEditId] = useState(null);
@@ -41,7 +55,6 @@ function UsersTab({ token, toast }) {
 
   const startEdit = async (u) => {
     setEditId(u.id);
-    // Load full profile with address
     let addr = {};
     try {
       const profile = await userApi.getProfile(u.id, token);
@@ -125,16 +138,16 @@ function UsersTab({ token, toast }) {
                 </tr>
                 {expandedUser===u.id && (
                   <tr key={`${u.id}-o`}><td colSpan={5} style={{background:'var(--warm)',padding:16}}>
-                    {orderHistory.filter(o=>o.userId===u.id).length===0
+                    {allOrders.filter(o=>o.userId===u.id).length===0
                       ? <span style={{color:'var(--muted)',fontSize:13}}>No orders for this user.</span>
-                      : orderHistory.filter(o=>o.userId===u.id).map((order,i)=>(
+                      : allOrders.filter(o=>o.userId===u.id).map((order,i)=>(
                         <div key={i} style={{background:'var(--white)',borderRadius:8,padding:14,marginBottom:8}}>
                           <div style={{display:'flex',justifyContent:'space-between',fontSize:13,marginBottom:6}}>
                             <span style={{fontWeight:600}}>{order.id}</span>
                             <span style={{color:'var(--muted)'}}>{new Date(order.date).toLocaleDateString()}</span>
                             <span style={{fontWeight:700,color:'var(--rust)'}}>${Number(order.total).toFixed(2)}</span>
                           </div>
-                          {order.items.map((item,j)=>(<div key={j} style={{fontSize:12,color:'var(--brown)'}}>{item.title} ×{item.quantity} — ${(Number(item.price)*item.quantity).toFixed(2)}</div>))}
+                          {order.items.map((item,j)=>(<div key={j} style={{fontSize:12,color:'var(--brown)'}}>{item.title} ×{item.quantity} — ${(Number(item.priceAtPurchase)*item.quantity).toFixed(2)}</div>))}
                         </div>
                       ))}
                   </td></tr>
@@ -175,7 +188,6 @@ function InventoryTab({ token, toast, addLog }) {
     const newQty = parseInt(editForm.quantity);
     const newPrice = parseFloat(editForm.price);
 
-    // Log changes
     if (oldProduct) {
       const changes = [];
       if (oldProduct.quantity !== newQty) changes.push(`Quantity: ${oldProduct.quantity} → ${newQty}`);
@@ -369,8 +381,8 @@ function SalesTab({ orderHistory }) {
                           <h4 style={{fontSize:13,fontWeight:600,color:'var(--brown)',marginBottom:10,textTransform:'uppercase',letterSpacing:1}}>Order Items</h4>
                           {order.items.map((item,i)=>(
                             <div key={i} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:'1px solid var(--sand)',fontSize:14}}>
-                              <div><span style={{fontWeight:600}}>{item.title}</span><span style={{color:'var(--muted)',marginLeft:8}}>×{item.quantity}</span> <span style={{color:'var(--muted)',fontSize:12}}>@ ${Number(item.price).toFixed(2)}</span></div>
-                              <span style={{fontWeight:600}}>${(Number(item.price)*item.quantity).toFixed(2)}</span>
+                              <div><span style={{fontWeight:600}}>{item.title}</span><span style={{color:'var(--muted)',marginLeft:8}}>×{item.quantity}</span> <span style={{color:'var(--muted)',fontSize:12}}>@ ${Number(item.priceAtPurchase).toFixed(2)}</span></div>
+                              <span style={{fontWeight:600}}>${(Number(item.priceAtPurchase)*item.quantity).toFixed(2)}</span>
                             </div>
                           ))}
                           <div style={{display:'flex',justifyContent:'space-between',paddingTop:10,fontWeight:700,fontSize:15}}>
