@@ -64,7 +64,7 @@ npm install
 npm run dev
 ```
 
-Open the localhost link printed in the front-end terminal (typically [http://localhost:5173](http://localhost:5173)).
+Open the localhost link printed in the front-end terminal.
 
 ---
 
